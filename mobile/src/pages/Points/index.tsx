@@ -15,9 +15,10 @@ interface Item {
   image_url: string;
 }
 
-interface Points {
+interface Point {
   id: number;
   image: string;
+  image_url: string;
   name: string;
   latitude: number;
   longitude: number;
@@ -35,7 +36,7 @@ const Points = () => {
   const routeParams = route.params as Params;
 
   const [items, setItems] = useState<Item[]>([]);
-  const [points, setPoints] = useState<Points[]>([]);
+  const [points, setPoints] = useState<Point[]>([]);
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
 
   const [initialPosition, setInitialPosition] = useState<[number, number]>([0, 0])
@@ -120,9 +121,9 @@ const Points = () => {
                 }}
               >
                 {
-                  points.map(point => (
+                  points.map((point, key) => (
                     <Marker
-                      key={String(point.id)}
+                      key={String(key)}
                       style={styles.mapMarker}
                       onPress={() => handleNavigateToDetail(point.id)}
                       coordinate={{
@@ -131,7 +132,7 @@ const Points = () => {
                       }}
                     >
                       <View style={styles.mapMarkerContainer}>
-                        <Image style={styles.mapMarkerImage} source={{ uri: point.image }} />
+                        <Image style={styles.mapMarkerImage} source={{ uri: point.image_url }} />
                         <Text style={styles.mapMarkerTitle}>{point.name}</Text>
                       </View>
                     </Marker>

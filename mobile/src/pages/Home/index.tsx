@@ -1,17 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Feather as Icon } from "@expo/vector-icons/";
 import { RectButton } from "react-native-gesture-handler";
-import { StyleSheet, ImageBackground, Text, View, Image, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import SelectPicker from "react-native-picker-select";
+import { StyleSheet, ImageBackground, Text, View, Image, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+
+interface IBGEUFResponse {
+  nome: string;
+  sigla: string;
+}
+
+interface IBGECityResponse {
+  nome: string;
+}
+
+interface ItemsPicker {
+  label: string;
+  value: string;
+}
 
 const Home = () => {
   const navigation = useNavigation();
 
-  const [uf, setUf] = useState("");
-  const [city, setCity] = useState("");
+  const [ufs, setUfs] = useState<ItemsPicker[]>([
+    {
+      label: "Selecione um estado",
+      value: "",
+    }
+  ]);
+  const [cities, setCities] = useState<ItemsPicker[]>([
+    {
+      label: "Selecione uma cidade",
+      value: "",
+    }
+  ]);
+
+  const [selectedUf, setSelectedUf] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+
+  useEffect(() => {
+    axios.get<IBGEUFResponse[]>("https://servicodados.ibge.gov.br/api/v1/localidades/estados")
+      .then(response => {
+        const ufsSerializedToItemsPicker = response.data.map(uf => ({ value: uf.sigla, label: uf.nome }));
+        setUfs([...ufsSerializedToItemsPicker]);
+      })
+  }, []);
+
+  useEffect(() => {
+    axios.get<IBGECityResponse[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedUf}/municipios`)
+      .then(response => {
+        const citiesSerializedToItemsPicker = response.data.map(city => ({ label: city.nome, value: city.nome }));
+        setCities([...citiesSerializedToItemsPicker]);
+      })
+  }, [selectedUf])
 
   function handleNavigateToPoints() {
-    navigation.navigate("Points", { uf, city });
+    if (selectedUf && selectedCity) {
+      navigation.navigate("Points", { uf: selectedUf, city: selectedCity });
+    } else {
+      Alert.alert("Oops!", "Precisamos que selecione um estado e uma cidade para continuar...");
+    }
   }
 
   return (
@@ -30,21 +79,42 @@ const Home = () => {
         </View>
 
         <View style={styles.footer}>
-          <TextInput
-            style={styles.input}
-            value={uf}
-            onChangeText={setUf}
-            maxLength={2}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            placeholder="Digite a UF"
-          />
-          <TextInput
-            style={styles.input}
-            value={city}
-            onChangeText={setCity}
-            placeholder="Digite a cidade"
-          />
+          <SelectPicker
+            useNativeAndroidPickerStyle={false}
+            style={{
+              ...pickerSelectStyles,
+              iconContainer: {
+                paddingTop: '90%',
+                right: 5
+              }
+            }}
+            placeholder={ufs[0]}
+            Icon={() => (
+              <View>
+                <Icon name="chevron-down" size={16} />
+              </View>
+            )}
+            onValueChange={value => setSelectedUf(value)}
+            items={ufs}
+          ></SelectPicker>
+          <SelectPicker
+            useNativeAndroidPickerStyle={false}
+            style={{
+              ...pickerSelectStyles,
+              iconContainer: {
+                paddingTop: '90%',
+                right: 5
+              }
+            }}
+            placeholder={cities[0]}
+            Icon={() => (
+              <View>
+                <Icon name="chevron-down" size={16} />
+              </View>
+            )}
+            onValueChange={value => setSelectedCity(value)}
+            items={cities}
+          ></SelectPicker>
 
           <RectButton style={styles.button} onPress={handleNavigateToPoints}>
             <View style={styles.buttonIcon}>
@@ -62,11 +132,41 @@ const Home = () => {
   )
 }
 
+const pickerSelectStyles = StyleSheet.create({
+  inputIOS: {
+    fontSize: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 0.5,
+    borderColor: '#AAA',
+    borderRadius: 8,
+    color: '#888',
+    marginBottom: 10
+  },
+  inputAndroid: {
+    fontSize: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 0.5,
+    borderColor: '#AAA',
+    borderRadius: 8,
+    color: '#888',
+    marginBottom: 10
+  },
+});
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 32,
   },
+
+  inputAndroid: {
+    padding: 10,
+    backgroundColor: '#CCC'
+  },
+
+  inputIOS: {},
 
   main: {
     flex: 1,
